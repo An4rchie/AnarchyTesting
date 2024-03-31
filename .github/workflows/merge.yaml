@@ -5,16 +5,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Run build script
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Assert first 17 README lines unchanged
         run: |
-          exit 0
-  automerge:
+          if [[ $(head -n 17 README.md | sha256sum) = "13fffc1b28c347c751f45fd1aaef295508e37822be9c511c517b668976ef7d9a  -" ]];then exit 0; else exit 1; fi
+      - name: Assert .github folder unchanged
+        run: |
+          if [[ $(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --name-only | grep .github) ]];then exit 1; else exit 0; fi
+  merge:
     needs: build
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
       - name: Merge
         run: |
-          curl -sS -f -I -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
-          curl -L -X PUT -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"  -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/${{ github.event.number }}/merge -v
+          curl -L -X PUT -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"  -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/${{ github.event.number }}/merge
 
